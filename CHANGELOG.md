@@ -39,7 +39,7 @@ The skill assumes a Git host + tagged-release-triggers-archive-deposit model (th
 
 | Skill | Role | When |
 |---|---|---|
-| `claude-skill-authorship-strategy` | Judgment framework | Before this skill — determines whether the artifact is in scope for the identifier-federation triplet |
-| `claude-skill-context-sync` | Cross-document drift audits | Phase 3 delegates drift detection to this skill |
-| `claude-skill-llms-txt-writer` | AI-facing documentation prose | Used during Phase 3 when llms.txt or llms-full.txt needs regeneration |
-| `claude-skill-jsonld-knowledge-graph` | JSON-LD knowledge graph | Used during Phase 4 for graph validation |
+| `authorship-strategy-skill` | Judgment framework | Before this skill — determines whether the artifact is in scope for the identifier-federation triplet |
+| `context-sync` | Cross-document drift audits | Phase 3 delegates drift detection to this skill |
+| `llms-txt-writer` | AI-facing documentation prose | Used during Phase 3 when llms.txt or llms-full.txt needs regeneration |
+| `jsonld-knowledge-graph` | JSON-LD knowledge graph | Used during Phase 4 for graph validation |

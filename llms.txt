@@ -1,4 +1,4 @@
-# claude-skill-release-doi
+# release-doi
 
 > A Claude Code skill (documentation-only, MIT, v0.1.0 Unreleased) that runs the release workflow for DOI-registered research repositories following the identifier-federation triplet from [`authorship-strategy`](https://github.com/shimo4228/authorship-strategy) (ADRs 0001-0003). Pre-flight Zenodo opt-in check + five-phase runbook + one post-release phase, preventing the most common release-time drift incidents (off-by-one concept-vs-version DOI canonicalization, missed sibling cross-reference updates, accidental version-DOI propagation, opt-in lag on first release of a new DOI repository).
 
@@ -31,17 +31,17 @@ The concept DOI (parent record, latest-version-resolving) and the initial versio
 
 Other component skills of the same framework:
 
-- [claude-skill-authorship-strategy](https://github.com/shimo4228/claude-skill-authorship-strategy): the framework's judgment-checklist form; determines whether an artifact is in scope before this release-time skill is invoked
-- [claude-skill-llms-txt-writer](https://github.com/shimo4228/claude-skill-llms-txt-writer): operationalizes Layer 4 tactic 7's Answer.AI `llms.txt` convention; Phase 3 invokes it when llms.txt regeneration is needed
-- [claude-skill-jsonld-knowledge-graph](https://github.com/shimo4228/claude-skill-jsonld-knowledge-graph): operationalizes Layer 4 tactic 7's JSON-LD knowledge graph; Phase 4 uses its verification commands
+- [authorship-strategy-skill](https://github.com/shimo4228/authorship-strategy-skill): the framework's judgment-checklist form; determines whether an artifact is in scope before this release-time skill is invoked
+- [llms-txt-writer](https://github.com/shimo4228/llms-txt-writer): operationalizes Layer 4 tactic 7's Answer.AI `llms.txt` convention; Phase 3 invokes it when llms.txt regeneration is needed
+- [jsonld-knowledge-graph](https://github.com/shimo4228/jsonld-knowledge-graph): operationalizes Layer 4 tactic 7's JSON-LD knowledge graph; Phase 4 uses its verification commands
 
 Terminology: *sibling* is reserved for research-line-level peers; at the component-skill level the term *peer component* is used.
 
 ## Related ecosystem skills
 
-- [claude-skill-context-sync](https://github.com/shimo4228/claude-skill-context-sync): Phase 3 delegates drift detection to this skill
-- [claude-skill-llms-txt-writer](https://github.com/shimo4228/claude-skill-llms-txt-writer): used during Phase 3 for llms.txt regeneration
-- [claude-skill-jsonld-knowledge-graph](https://github.com/shimo4228/claude-skill-jsonld-knowledge-graph): used during Phase 4 for graph validation
+- [context-sync](https://github.com/shimo4228/context-sync): Phase 3 delegates drift detection to this skill
+- [llms-txt-writer](https://github.com/shimo4228/llms-txt-writer): used during Phase 3 for llms.txt regeneration
+- [jsonld-knowledge-graph](https://github.com/shimo4228/jsonld-knowledge-graph): used during Phase 4 for graph validation
 
 ## Sibling research lines
 

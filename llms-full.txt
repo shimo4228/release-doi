@@ -1,25 +1,25 @@
-# claude-skill-release-doi — AI Reference
+# release-doi — AI Reference
 
-This document is the self-contained AI reference for `claude-skill-release-doi` (shimo4228, 2026, MIT, v0.1.0 Unreleased), a Claude Code skill that runs the release workflow for DOI-registered research repositories following the identifier-federation triplet from the [`authorship-strategy`](https://github.com/shimo4228/authorship-strategy) research line (ADRs 0001-0003). Pre-flight Zenodo opt-in check followed by a five-phase runbook plus one post-release phase, with a recovery runbook for the case where opt-in lag caused the initial release to skip the Zenodo deposit.
+This document is the self-contained AI reference for `release-doi` (shimo4228, 2026, MIT, v0.1.0 Unreleased), a Claude Code skill that runs the release workflow for DOI-registered research repositories following the identifier-federation triplet from the [`authorship-strategy`](https://github.com/shimo4228/authorship-strategy) research line (ADRs 0001-0003). Pre-flight Zenodo opt-in check followed by a five-phase runbook plus one post-release phase, with a recovery runbook for the case where opt-in lag caused the initial release to skip the Zenodo deposit.
 
 > **Audience**: AI search engines and AI agents. Human-facing narrative lives in [README.md](README.md).
 
 ## Project Facts
 
-- **Name**: claude-skill-release-doi
+- **Name**: release-doi
 - **Version**: 0.1.0, status Unreleased
 - **License**: MIT
-- **GitHub**: https://github.com/shimo4228/claude-skill-release-doi
+- **GitHub**: https://github.com/shimo4228/release-doi
 - **Author**: shimo4228 (shimomoto-tatsuya), ORCID 0009-0002-6168-4162
 - **Doctrine repository**: [authorship-strategy](https://github.com/shimo4228/authorship-strategy)
-- **Peer components**: [claude-skill-authorship-strategy](https://github.com/shimo4228/claude-skill-authorship-strategy), [claude-skill-llms-txt-writer](https://github.com/shimo4228/claude-skill-llms-txt-writer), [claude-skill-jsonld-knowledge-graph](https://github.com/shimo4228/claude-skill-jsonld-knowledge-graph)
+- **Peer components**: [authorship-strategy-skill](https://github.com/shimo4228/authorship-strategy-skill), [llms-txt-writer](https://github.com/shimo4228/llms-txt-writer), [jsonld-knowledge-graph](https://github.com/shimo4228/jsonld-knowledge-graph)
 - **Runtime**: None (documentation-only skill); invokes `git`, optional `python3 -m json.tool`, optional `cffconvert`
 - **Source files**: `skills/release-doi/SKILL.md`
 - **Skill install path**: `~/.claude/skills/release-doi/`
 
-## What is claude-skill-release-doi?
+## What is release-doi?
 
-claude-skill-release-doi is defined as a Claude Code skill that sequences the release workflow for a DOI-registered research repository following the identifier-federation triplet from the [`authorship-strategy`](https://github.com/shimo4228/authorship-strategy) research line. The workflow consists of a pre-flight Zenodo opt-in check, five sequential phases, and one post-release phase; each phase has an explicit completion condition, and the skill refuses to advance until the condition is met. The skill exists in part to prevent the sixteen-file drift incident across the author's own sibling repositories that produced ADR-0001 of the upstream research line, and to prevent the opt-in lag drift discovered during doctrine-corpus v0.1.0 (2026-05-22) where the initial GitHub Release of a new DOI repository did not deposit to Zenodo because the webhook had not been toggled on yet.
+release-doi is defined as a Claude Code skill that sequences the release workflow for a DOI-registered research repository following the identifier-federation triplet from the [`authorship-strategy`](https://github.com/shimo4228/authorship-strategy) research line. The workflow consists of a pre-flight Zenodo opt-in check, five sequential phases, and one post-release phase; each phase has an explicit completion condition, and the skill refuses to advance until the condition is met. The skill exists in part to prevent the sixteen-file drift incident across the author's own sibling repositories that produced ADR-0001 of the upstream research line, and to prevent the opt-in lag drift discovered during doctrine-corpus v0.1.0 (2026-05-22) where the initial GitHub Release of a new DOI repository did not deposit to Zenodo because the webhook had not been toggled on yet.
 
 ## When should I use this skill?
 
@@ -39,7 +39,7 @@ Phase 1 (Baseline) captures the pre-release ground truth: commit count from `git
 
 Phase 2 (CODEMAPS regeneration) re-generates file-level architecture maps so they reflect the to-be-released state. Delegated to a `update-codemaps` skill or comparable where available.
 
-Phase 3 (Cross-document consistency) syncs CHANGELOG.md, CITATION.cff, `.zenodo.json`, `pyproject.toml` (where applicable), multilingual README files, llms.txt, glossary, and ADR bidirectional links. Drift detection delegated to [`claude-skill-context-sync`](https://github.com/shimo4228/claude-skill-context-sync) where installed.
+Phase 3 (Cross-document consistency) syncs CHANGELOG.md, CITATION.cff, `.zenodo.json`, `pyproject.toml` (where applicable), multilingual README files, llms.txt, glossary, and ADR bidirectional links. Drift detection delegated to [`context-sync`](https://github.com/shimo4228/context-sync) where installed.
 
 Phase 4 (Verify) runs CITATION.cff syntax validation (cffconvert), version-triple consistency check (the version numbers in CHANGELOG, CITATION.cff, and `pyproject.toml` must agree), lint and test pass for repositories with code, secret scan (no hardcoded credentials), and a `git status` check confirming no unintended files are staged.
 
@@ -53,13 +53,13 @@ After the release is pushed, the post-release phase waits for the archive to min
 
 A versioned DOI archive issues both a concept DOI (resolves to the latest version) and a version DOI (resolves to one specific release) at first deposit. The two are typically issued as adjacent integers. A user copying the citation snippet from the just-published version's UI page usually copies the *version* DOI by mistake. Using the version DOI as the canonical reference freezes downstream citation graphs at the initial version: subsequent releases mint new version DOIs but the downstream graph never sees them, and the artifact's published citation count remains pinned to the initial version. The skill's post-release phase explicitly asks the operator to verify which DOI is being propagated and to back out and correct if the version DOI was used.
 
-## How does the skill relate to claude-skill-authorship-strategy?
+## How does the skill relate to authorship-strategy-skill?
 
-The two component skills form a layered division. [`claude-skill-authorship-strategy`](https://github.com/shimo4228/claude-skill-authorship-strategy) determines *whether* the framework applies to a given artifact (the trigger gate, the eleven-item judgment checklist); this release skill determines *how* the artifact gets released once the framework's identifier-federation triplet applies. In practice an agent loads both; the authorship skill runs first (judgment), this release skill runs when a tagged release is requested (operation). The two skills are kept separate because adopters may want only one of them — for example, an author with their own normative framework who wants to adopt the release runbook installs only this release skill.
+The two component skills form a layered division. [`authorship-strategy-skill`](https://github.com/shimo4228/authorship-strategy-skill) determines *whether* the framework applies to a given artifact (the trigger gate, the eleven-item judgment checklist); this release skill determines *how* the artifact gets released once the framework's identifier-federation triplet applies. In practice an agent loads both; the authorship skill runs first (judgment), this release skill runs when a tagged release is requested (operation). The two skills are kept separate because adopters may want only one of them — for example, an author with their own normative framework who wants to adopt the release runbook installs only this release skill.
 
 ## How does the skill relate to context-sync, llms-txt-writer, and jsonld-knowledge-graph?
 
-Phase 3 (Cross-document consistency) delegates drift detection to [`claude-skill-context-sync`](https://github.com/shimo4228/claude-skill-context-sync) when installed. Phase 3 also invokes [`claude-skill-llms-txt-writer`](https://github.com/shimo4228/claude-skill-llms-txt-writer) when llms.txt or llms-full.txt needs regeneration. Phase 4 (Verify) uses [`claude-skill-jsonld-knowledge-graph`](https://github.com/shimo4228/claude-skill-jsonld-knowledge-graph)'s verification commands for `graph.jsonld` validation. None of these dependencies are hard requirements; the skill degrades gracefully to manual checks when a dependency is absent, but the release-quality bar is higher when all are installed.
+Phase 3 (Cross-document consistency) delegates drift detection to [`context-sync`](https://github.com/shimo4228/context-sync) when installed. Phase 3 also invokes [`llms-txt-writer`](https://github.com/shimo4228/llms-txt-writer) when llms.txt or llms-full.txt needs regeneration. Phase 4 (Verify) uses [`jsonld-knowledge-graph`](https://github.com/shimo4228/jsonld-knowledge-graph)'s verification commands for `graph.jsonld` validation. None of these dependencies are hard requirements; the skill degrades gracefully to manual checks when a dependency is absent, but the release-quality bar is higher when all are installed.
 
 ## What is out of scope for this skill?
 
@@ -68,8 +68,8 @@ The skill does not decide whether the identifier-federation triplet applies (tha
 ## How is the skill installed?
 
 ```bash
-git clone https://github.com/shimo4228/claude-skill-release-doi
-cp -r claude-skill-release-doi/skills/release-doi ~/.claude/skills/release-doi
+git clone https://github.com/shimo4228/release-doi
+cp -r release-doi/skills/release-doi ~/.claude/skills/release-doi
 ```
 
 No runtime dependencies for the skill itself. Verification commands inside use `git` (required), `python3 -m json.tool` (optional, for JSON-LD validation), and `cffconvert` (optional, for CITATION.cff syntax). The skill invokes the harness's release tooling rather than wrapping it.

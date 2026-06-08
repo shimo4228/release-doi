@@ -64,9 +64,9 @@ The skill explicitly delegates several phases to other ecosystem
 skills where they are installed:
 
 - Phase 2 (CODEMAPS regeneration) delegates to an `update-codemaps` skill or comparable where available
-- Phase 3 (Cross-document consistency) delegates drift detection to [`claude-skill-context-sync`](https://github.com/shimo4228/claude-skill-context-sync)
-- Phase 3 invokes [`claude-skill-llms-txt-writer`](https://github.com/shimo4228/claude-skill-llms-txt-writer) when llms.txt regeneration is needed
-- Phase 4 (Verify) uses [`claude-skill-jsonld-knowledge-graph`](https://github.com/shimo4228/claude-skill-jsonld-knowledge-graph)'s verification commands for `graph.jsonld` validation
+- Phase 3 (Cross-document consistency) delegates drift detection to [`context-sync`](https://github.com/shimo4228/context-sync)
+- Phase 3 invokes [`llms-txt-writer`](https://github.com/shimo4228/llms-txt-writer) when llms.txt regeneration is needed
+- Phase 4 (Verify) uses [`jsonld-knowledge-graph`](https://github.com/shimo4228/jsonld-knowledge-graph)'s verification commands for `graph.jsonld` validation
 
 When the dependencies are absent, the skill degrades gracefully to
 manual checks, but the release-quality bar is higher when all are

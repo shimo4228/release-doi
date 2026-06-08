@@ -1,4 +1,4 @@
-# claude-skill-release-doi
+# release-doi
 
 A [Claude Code skill](https://docs.claude.com/en/docs/claude-code/skills) that runs the **release workflow for DOI-registered research repositories** following the identifier-federation triplet (ADRs 0001-0003) of the [authorship-strategy](https://github.com/shimo4228/authorship-strategy) research line. Sequences pre-release verification, tag-push, archive deposit, DOI propagation, and cross-platform federation update steps as a single five-phase runbook that prevents the most common release-time drift incidents (off-by-one canonical-reference mistakes, missed sibling cross-reference updates, accidental version-DOI canonicalization).
 
@@ -24,8 +24,8 @@ Skip the skill for:
 ### Claude Code
 
 ```bash
-git clone https://github.com/shimo4228/claude-skill-release-doi
-cp -r claude-skill-release-doi/skills/release-doi ~/.claude/skills/release-doi
+git clone https://github.com/shimo4228/release-doi
+cp -r release-doi/skills/release-doi ~/.claude/skills/release-doi
 ```
 
 No runtime dependencies for the skill itself; verification commands inside use `git`, optional `python3 -m json.tool` for JSON-LD validation, and optional `cffconvert` for CITATION.cff syntax checking. The skill invokes the harness's release tooling (`git tag`, `gh release create` or equivalent) rather than wrapping them.
@@ -56,19 +56,19 @@ This is not a hypothetical concern: the upstream research line's [ADR-0001](http
 
 | Concern | Use this instead |
 |---|---|
-| Decide whether to apply the identifier-federation triplet at all | [claude-skill-authorship-strategy](https://github.com/shimo4228/claude-skill-authorship-strategy) — applies the framework's trigger conditions |
-| llms.txt / llms-full.txt prose | [claude-skill-llms-txt-writer](https://github.com/shimo4228/claude-skill-llms-txt-writer) |
-| JSON-LD knowledge graph design | [claude-skill-jsonld-knowledge-graph](https://github.com/shimo4228/claude-skill-jsonld-knowledge-graph) |
-| Cross-document drift detection (Phase 3 delegates to this) | [claude-skill-context-sync](https://github.com/shimo4228/claude-skill-context-sync) |
+| Decide whether to apply the identifier-federation triplet at all | [authorship-strategy-skill](https://github.com/shimo4228/authorship-strategy-skill) — applies the framework's trigger conditions |
+| llms.txt / llms-full.txt prose | [llms-txt-writer](https://github.com/shimo4228/llms-txt-writer) |
+| JSON-LD knowledge graph design | [jsonld-knowledge-graph](https://github.com/shimo4228/jsonld-knowledge-graph) |
+| Cross-document drift detection (Phase 3 delegates to this) | [context-sync](https://github.com/shimo4228/context-sync) |
 | File-level architecture map regeneration (Phase 2 delegates to this) | A `update-codemaps` skill or comparable, where available |
 
 ## Related research and skills
 
 - **Doctrine repository**: [authorship-strategy](https://github.com/shimo4228/authorship-strategy) — the normative framework, five tactical ADRs (especially the identifier-federation triplet 0001-0003), and empirical baseline this skill is the operational instantiation of
 - **Peer components** (other component skills of the same framework):
-  - [claude-skill-authorship-strategy](https://github.com/shimo4228/claude-skill-authorship-strategy) — the framework's judgment-checklist form; this release-time skill assumes the framework has already determined the artifact is in-scope
-  - [claude-skill-llms-txt-writer](https://github.com/shimo4228/claude-skill-llms-txt-writer) — operationalizes Layer 4 tactic 7's Answer.AI `llms.txt` convention; this release skill's Phase 3 invokes it when llms.txt regeneration is needed
-  - [claude-skill-jsonld-knowledge-graph](https://github.com/shimo4228/claude-skill-jsonld-knowledge-graph) — operationalizes Layer 4 tactic 7's JSON-LD knowledge graph; this release skill's Phase 4 uses its verification commands
+  - [authorship-strategy-skill](https://github.com/shimo4228/authorship-strategy-skill) — the framework's judgment-checklist form; this release-time skill assumes the framework has already determined the artifact is in-scope
+  - [llms-txt-writer](https://github.com/shimo4228/llms-txt-writer) — operationalizes Layer 4 tactic 7's Answer.AI `llms.txt` convention; this release skill's Phase 3 invokes it when llms.txt regeneration is needed
+  - [jsonld-knowledge-graph](https://github.com/shimo4228/jsonld-knowledge-graph) — operationalizes Layer 4 tactic 7's JSON-LD knowledge graph; this release skill's Phase 4 uses its verification commands
 - **Sibling research lines** (at the research-program level): [Agent Knowledge Cycle (AKC)](https://github.com/shimo4228/agent-knowledge-cycle), [Contemplative Agent](https://github.com/shimo4228/contemplative-agent), [Agent Attribution Practice (AAP)](https://github.com/shimo4228/agent-attribution-practice)
 
 > **Terminology note.** This ecosystem reserves *sibling* for research-line-level peers; at the component-skill level the term *peer component* is used instead.
