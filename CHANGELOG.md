@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Software Heritage archival step (authorship-strategy ADR-0013): Phase 5 submits an explicit Save Code Now request after the release tag is pushed; the post-release phase retrieves the snapshot SWHID once the visit completes and records it in CITATION.cff via the CFF 1.2.0 `identifiers` field (`type: swh`), appending — not replacing — prior release snapshots. The step is asynchronous and never blocks the release; anonymous save requests are rate-limited to 10/hour
+- `.zenodo.json` citation-surface sync in Phase 3: externally cited literature (arXiv / DOI papers) newly referenced since the previous release is added to `related_identifiers` with `relation: references`, propagating machine-readable citation edges to DataCite / OpenAIRE / Scholix (citation-graph federation tactic)
+- Zenodo community inclusion step in the post-release phase (first release of a new repository or paper only — inclusion is per parent record, so later versions inherit it)
+- Wikidata federation step (optional, first release only) and HF dataset mirror sync for repositories carrying `graph.jsonld`
 - Phase 0 Zenodo opt-in pre-flight check — detects Zenodo GitHub webhook registration via `gh api repos/<owner>/<repo>/hooks` before any release work begins, surfacing missing opt-in toggles for new DOI repositories
 - User-facing browser step for enabling the Zenodo opt-in toggle at `https://zenodo.org/account/settings/github/`
 - Recovery runbook for cases where opt-in lag caused the initial GitHub Release to not deposit to Zenodo (tag deletion + Release re-creation procedure)
@@ -21,7 +25,7 @@ All notable changes to this project will be documented in this file.
 
 ### What it does
 
-A Claude Code skill that runs the release workflow for DOI-registered research repositories following the identifier-federation triplet from [`authorship-strategy`](https://github.com/shimo4228/authorship-strategy) (ADRs 0001-0003). Sequences five release phases plus one post-release phase, preventing the most common release-time drift incidents.
+A Claude Code skill that runs the release workflow for DOI-registered research repositories following the identifier-federation triplet from [`authorship-strategy`](https://github.com/shimo4228/authorship-strategy) (ADRs 0001-0003) and its intrinsic-identifier layer (ADR-0013). Sequences five release phases plus one post-release phase, preventing the most common release-time drift incidents.
 
 ### Components
 

@@ -1,6 +1,6 @@
 # release-doi
 
-> A Claude Code skill (documentation-only, MIT, v0.1.0 Unreleased) that runs the release workflow for DOI-registered research repositories following the identifier-federation triplet from [`authorship-strategy`](https://github.com/shimo4228/authorship-strategy) (ADRs 0001-0003). Pre-flight Zenodo opt-in check + five-phase runbook + one post-release phase, preventing the most common release-time drift incidents (off-by-one concept-vs-version DOI canonicalization, missed sibling cross-reference updates, accidental version-DOI propagation, opt-in lag on first release of a new DOI repository).
+> A Claude Code skill (documentation-only, MIT, v0.1.0 Unreleased) that runs the release workflow for DOI-registered research repositories following the identifier-federation triplet from [`authorship-strategy`](https://github.com/shimo4228/authorship-strategy) (ADRs 0001-0003) and its intrinsic-identifier layer (ADR-0013: Software Heritage archival + SWHID recording). Pre-flight Zenodo opt-in check + five-phase runbook + one post-release phase, preventing the most common release-time drift incidents (off-by-one concept-vs-version DOI canonicalization, missed sibling cross-reference updates, accidental version-DOI propagation, opt-in lag on first release of a new DOI repository).
 
 ## Core documentation
 
@@ -15,9 +15,9 @@
 2. **CODEMAPS regeneration** — re-generate file-level architecture maps
 3. **Cross-document consistency** — sync CHANGELOG / CITATION.cff / .zenodo.json / multilingual README / llms.txt / glossary / ADR bidirectional links
 4. **Verify** — CITATION.cff syntax, version triple, lint and test pass, secret scan, unintended-file check
-5. **Release execution** — stage specific files, HEREDOC commit, tag, push, create the release object that triggers the archive webhook
+5. **Release execution** — stage specific files, HEREDOC commit, tag, push, create the release object that triggers the archive webhook; submit an explicit Software Heritage Save Code Now request so the archive snapshot covers the released state (asynchronous, never blocks the release)
 
-Post-release: wait for DOI minting, verify the concept DOI is being propagated (not the initial version DOI — the load-bearing single discipline of this skill), update CITATION.cff and .zenodo.json with the concept DOI, follow-up commit. If opt-in lag caused the initial GitHub Release to skip Zenodo deposit, the recovery runbook deletes the tag and Release object and re-creates them after opt-in is enabled.
+Post-release: wait for DOI minting, verify the concept DOI is being propagated (not the initial version DOI — the load-bearing single discipline of this skill), update CITATION.cff and .zenodo.json with the concept DOI, retrieve the Software Heritage snapshot SWHID and record it in CITATION.cff (`identifiers`, `type: swh` — appended per release, never replaced), follow-up commit. On the first release of a new repository or paper, also include the record in the author's Zenodo community (per parent record; later versions inherit it) and optionally create the Wikidata item. If opt-in lag caused the initial GitHub Release to skip Zenodo deposit, the recovery runbook deletes the tag and Release object and re-creates them after opt-in is enabled.
 
 ## Key concept
 
@@ -25,7 +25,7 @@ The concept DOI (parent record, latest-version-resolving) and the initial versio
 
 ## Doctrine repository
 
-- [authorship-strategy](https://github.com/shimo4228/authorship-strategy): the normative framework whose ADRs 0001-0003 (identifier-federation triplet) this skill instantiates as a release-time workflow
+- [authorship-strategy](https://github.com/shimo4228/authorship-strategy): the normative framework whose ADRs 0001-0003 (identifier-federation triplet) and ADR-0013 (intrinsic content-derived identifier layer) this skill instantiates as a release-time workflow
 
 ## Peer components
 
@@ -51,3 +51,4 @@ The skill operates on artifacts in the author's research program:
 - [agent-knowledge-cycle (AKC)](https://github.com/shimo4228/agent-knowledge-cycle) — DOI 10.5281/zenodo.19200726
 - [contemplative-agent](https://github.com/shimo4228/contemplative-agent) — DOI 10.5281/zenodo.19212118
 - [agent-attribution-practice (AAP)](https://github.com/shimo4228/agent-attribution-practice) — DOI 10.5281/zenodo.19652013
+- [attention-not-self](https://github.com/shimo4228/attention-not-self) — DOI 10.5281/zenodo.20262112
