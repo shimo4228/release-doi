@@ -1,5 +1,7 @@
 # release-doi
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/shimo4228/release-doi)
+
 A [Claude Code skill](https://docs.claude.com/en/docs/claude-code/skills) that runs the **release workflow for DOI-registered research repositories** following the identifier-federation triplet (ADRs 0001-0003) of the [authorship-strategy](https://github.com/shimo4228/authorship-strategy) research line. Sequences pre-release verification, tag-push, archive deposit, DOI propagation, and cross-platform federation update steps as a single five-phase runbook that prevents the most common release-time drift incidents (off-by-one canonical-reference mistakes, missed sibling cross-reference updates, accidental version-DOI canonicalization).
 
 The skill is **harness-aware where it has to be** (it knows about Git, GitHub, Zenodo's auto-deposit-on-tag webhook, and CITATION.cff / `.zenodo.json` formats) but **harness-neutral where it can be**: the verify and deposit steps are written so an adopter using a different archive service (Software Heritage, OSF, Figshare) or a different release tooling chain can substitute the equivalent operations without re-deriving the runbook.
