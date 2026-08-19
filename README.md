@@ -1,6 +1,6 @@
 # release-doi
 
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/shimo4228/release-doi) [![GitMCP](https://img.shields.io/endpoint?url=https://gitmcp.io/badge/shimo4228/release-doi)](https://gitmcp.io/shimo4228/release-doi)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/shimo4228/release-doi)
 
 A [Claude Code skill](https://docs.claude.com/en/docs/claude-code/skills) that runs the **release workflow for DOI-registered research repositories** following the identifier-federation triplet (ADRs 0001-0003) of the [authorship-strategy](https://github.com/shimo4228/authorship-strategy) research line. Sequences pre-release verification, tag-push, archive deposit, DOI propagation, and cross-platform federation update steps as a single five-phase runbook that prevents the most common release-time drift incidents (off-by-one canonical-reference mistakes, missed sibling cross-reference updates, accidental version-DOI canonicalization).
 
