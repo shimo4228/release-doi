@@ -2,24 +2,31 @@
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/shimo4228/release-doi)
 
-A [Claude Code skill](https://docs.claude.com/en/docs/claude-code/skills) that runs the **release workflow for DOI-registered research repositories** following the identifier-federation triplet (ADRs 0001-0003) of the [authorship-strategy](https://github.com/shimo4228/authorship-strategy) research line. Sequences pre-release verification, tag-push, archive deposit, DOI propagation, and cross-platform federation update steps as a single five-phase runbook that prevents the most common release-time drift incidents (off-by-one canonical-reference mistakes, missed sibling cross-reference updates, accidental version-DOI canonicalization).
+A [Claude Code skill](https://docs.claude.com/en/docs/claude-code/skills) that runs the **release workflow for DOI-registered research repositories**: GitHub repositories whose every release Zenodo archives under a new version DOI. It sequences pre-release verification, cross-document updates, the tag and GitHub release that trigger the deposit, and DOI propagation as one runbook (a pre-flight gate, four phases and a post-release phase), so that a release does not leave an old version number, the wrong DOI or an outdated cross-reference behind in its files.
 
-The skill is **harness-aware where it has to be** (it knows about Git, GitHub, Zenodo's auto-deposit-on-tag webhook, and CITATION.cff / `.zenodo.json` formats) but **harness-neutral where it can be**: the verify and deposit steps are written so an adopter using a different archive service (Software Heritage, OSF, Figshare) or a different release tooling chain can substitute the equivalent operations without re-deriving the runbook.
+The skill pushes to GitHub, creates the release that starts Zenodo's deposit, sends archive requests to Software Heritage and the Wayback Machine, and updates the Hugging Face mirror of repos that carry a `graph.jsonld` knowledge graph; with a Zenodo API token it also writes to the Zenodo API to add a new record to a community or to edit and re-publish a published record. It pushes and creates the release only when you ask it to; creating the release cannot be undone, because Zenodo mints a DOI for it, and the recovery path for a missed Zenodo opt-in deletes the GitHub release and its remote tag before recreating them.
+
+## Key concept: concept DOI vs version DOI
+
+The skill's most load-bearing single discipline is the distinction between the **concept DOI** (parent record, resolves to the latest version, the canonical reference shape) and the **version DOI** (specific to one release). At initial deposit the two are often adjacent numbers, so the version DOI is easy to take for the concept DOI; the incident behind the skill was initial version DOIs used as the canonical reference in sixteen files across two of the author's repositories. The skill separates the two by use: display links (the README DOI badge, the GitHub homepage field) carry the concept DOI and are set once; citation fields that must say which version was read (`CITATION.cff`, BibTeX, "How to cite") carry the version DOI and change every release.
 
 ## When to use
 
-Apply the skill when **all** of the following hold:
+Apply the skill to a release when **all** of the following hold:
 
-- The repository is registered (or about to be registered) with a versioned DOI archive (Zenodo is the reference example)
+- The repository is registered (or about to be registered) with a versioned DOI archive (Zenodo is the reference example; the skill checks for a `CITATION.cff`)
 - The release follows a tagged-release-triggers-deposit model (typical for Zenodo's GitHub integration)
-- The repository participates in a federation of sibling DOI-registered artifacts (`.zenodo.json` `relatedIdentifiers` declarations, cross-platform dataset mirrors)
-- The release author intends to maintain the **concept DOI as canonical reference** discipline (ADR-0001 in the upstream research line)
+- The release author intends to maintain the **concept DOI as canonical reference** discipline above ([ADR-0001](https://github.com/shimo4228/authorship-strategy/blob/main/docs/adr/0001-concept-doi-canonical.md), the design decision record in authorship-strategy that came out of that incident)
+
+The skill adds most when the repository is one of several DOI-registered siblings that declare each other in the `related_identifiers` list of `.zenodo.json` or keep dataset mirrors on other platforms.
+
+Besides releases, the skill covers fixing the metadata of an already published Zenodo record without cutting a new release, for a fix that cannot wait for the next one; that path makes no tag or release, so the tagged-release condition does not apply to it. To start it, ask `/release-doi` to edit and re-publish the published record's metadata; it runs only in an interactive session.
 
 Skip the skill for:
 
-- Repositories without DOI registration (the workflow's central artifact, the DOI, does not exist)
+- Repositories without a `CITATION.cff`, the file the skill checks to recognize a Zenodo-linked repository (a new repository's first release is in scope once it has one)
 - One-shot artifacts published without versioning intent (the version/concept DOI distinction does not apply)
-- Repositories where the release author has explicitly opted out of the identifier-federation triplet (the skill's assumptions do not hold)
+- Changes too small to release, such as a typo fix
 
 ## Install
 
@@ -30,51 +37,62 @@ git clone https://github.com/shimo4228/release-doi
 cp -r release-doi/skills/release-doi ~/.claude/skills/release-doi
 ```
 
-No runtime dependencies for the skill itself; verification commands inside use `git`, optional `python3 -m json.tool` for JSON-LD validation, and optional `cffconvert` for CITATION.cff syntax checking. The skill invokes the harness's release tooling (`git tag`, `gh release create` or equivalent) rather than wrapping them.
+To start a release, run `/release-doi` in the repository you are releasing.
+
+Requirements: `git`, an authenticated GitHub CLI (`gh`), `curl`, `python3` and `uv` (`uvx cffconvert --validate` checks CITATION.cff against its schema), and a Zenodo account with the GitHub integration switched on for the repository. The skill itself has no runtime dependencies. A free Zenodo API token is needed only for Zenodo community inclusion and published-record edits. The skill text is written in Japanese.
+
+The runbook was written for the author's own repositories and harness. Substitute or skip these steps:
+
+- Zenodo community inclusion (first release only) names the author's community (`shimo4228-research-program`) and reads the token from a local credentials file (the runbook's example is `~/.config/zenodo/credentials.env`).
+- The Hugging Face mirror step, only for repos with `graph.jsonld`, calls a separate `hf-sync` skill (not included here) with a logged-in `hf` CLI.
+- The cross-document phase (Phase 2) opens with the [`/context-sync`](https://github.com/shimo4228/context-sync) skill for drift detection.
+- The commit step passes the message through a file to work around the author's PreToolUse hook (`hooks/validate-bash.sh`), and a few lines point to the author's rules and skills (`rules/common/debugging.md`, `measurement-discipline`, `repair-discipline`).
 
 ### Other harnesses
 
-Adapt the install path to your harness's skill convention. The skill's runbook is written in a form that does not depend on Claude Code specifically; the trigger and invocation mechanism is the only harness-specific surface.
+Adapt the install path to your harness's skill convention; besides the steps above, the trigger and invocation mechanism is the harness-specific part. The commands assume Git, GitHub and Zenodo.
 
 ## How it works
 
-The skill walks through a pre-flight gate, five sequential phases, and one post-release phase. Each phase has an explicit completion condition; the skill refuses to advance until the condition is met.
+The skill walks through a pre-flight gate, four sequential phases, and one post-release phase. The runbook names explicit stop conditions: the Zenodo opt-in is missing, there are no commits since the last tag, a Phase 3 check fails, Phase 4 finds unintended modified files, or after release the webhook delivery fails or no DOI is minted. At each, the skill stops and reports instead of advancing.
 
-0. **Pre-flight: Zenodo opt-in check** — verifies the Zenodo GitHub webhook is registered on the target repository (`gh api repos/<owner>/<repo>/hooks`). Zenodo's GitHub integration is **repo-by-repo opt-in**; releases cut before the toggle is enabled are not retroactively archived. This gate catches the gap on first release of a new DOI repository — a blind spot when sibling repos are already opted in.
-1. **Phase 1: Baseline** — capture the pre-release ground truth (commit count, file count, test count where applicable). This is the reference state against which Phase 4 verifies.
-2. **Phase 2: CODEMAPS regeneration** — re-generate file-level architecture maps so they reflect the to-be-released state.
-3. **Phase 3: Cross-document consistency** — sync CHANGELOG / CITATION.cff / `.zenodo.json` / `pyproject.toml` (where applicable) / multilingual README / llms.txt / glossary / ADR bidirectional links. Drift detection delegated to context-sync where available.
-4. **Phase 4: Verify** — CITATION.cff syntax, version triple consistency, lint and test pass, secret scan, unintended-file inclusion check.
-5. **Phase 5: Release execution** — stage specific files only (no wildcards), HEREDOC commit message, tag creation, push main and tag, create the Git host release object that triggers the archive webhook.
-6. **Post-release** — wait for the archive's DOI minting (typically five to ten minutes for Zenodo), verify the **concept DOI** is what gets propagated (not the initial version DOI; the off-by-one drift incident this guards against is documented in ADR-0001 of the upstream research line), then update the CITATION.cff and `.zenodo.json` with the concept DOI and create a follow-up `chore(release):` commit.
-
-## Key concept: concept DOI vs version DOI
-
-The skill's most load-bearing single discipline is the distinction between the **concept DOI** (parent record, resolves to the latest version, the canonical reference shape) and the **version DOI** (specific to one release, used only for reproducibility citations). At initial deposit the two are typically issued as adjacent integers, and a user copying the citation snippet from the just-published version's UI page usually copies the *version* DOI by mistake. The skill's post-release phase explicitly asks the operator to verify which DOI is being propagated and to back out and correct if the version DOI was used.
-
-This is not a hypothetical concern: the upstream research line's [ADR-0001](https://github.com/shimo4228/authorship-strategy/blob/main/docs/adr/0001-concept-doi-canonical.md) was extracted from an actual sixteen-file drift incident across the author's own sibling repositories. The skill exists in part to prevent that incident from recurring.
+- **Pre-flight: Zenodo opt-in check**: verifies the Zenodo GitHub webhook is registered on the target repository (`gh api repos/<owner>/<repo>/hooks`). Zenodo's GitHub integration is **repo-by-repo opt-in**; releases cut before the toggle is enabled are not retroactively archived. This gate catches the gap on first release of a new DOI repository, a blind spot when sibling repos are already opted in.
+- **Phase 1: Baseline**: capture the pre-release ground truth from command output (commits since the last tag, file and test counts where applicable, the version in `pyproject.toml`, `CITATION.cff` and the latest tags). Numbers already written in the docs are not trusted.
+- **Phase 2: Cross-document consistency**: sync CHANGELOG / CITATION.cff / `codemeta.json` / `.zenodo.json` (including external papers newly cited since the last release) / `pyproject.toml` (where applicable) / multilingual README / llms.txt / glossary / ADR bidirectional links. Drift detection is delegated to context-sync.
+- **Phase 3: Verify**: CITATION.cff schema and syntax, version consistency across `pyproject.toml`, `CITATION.cff` and the README BibTeX, lint and test pass, secret scan, unintended-file inclusion check.
+- **Phase 4: Release execution**: stage specific files only (no wildcards), commit, tag, push main and tag, and create the GitHub release object that triggers the Zenodo webhook. Then request a Software Heritage archive and a Wayback Machine snapshot of the repository page, and sync the Hugging Face mirror for repositories that carry `graph.jsonld`.
+- **Post-release**: wait for Zenodo to mint the new version DOI (usually within minutes), write it into the citation fields (`CITATION.cff`, the README BibTeX and "How to cite"), record the Software Heritage snapshot ID (SWHID) in `CITATION.cff`, and leave the concept-DOI badge and homepage untouched.
 
 ## What this skill does NOT do
 
 | Concern | Use this instead |
 |---|---|
-| Decide whether to apply the identifier-federation triplet at all | [authorship-strategy-skill](https://github.com/shimo4228/authorship-strategy-skill) — applies the framework's trigger conditions |
+| Weigh whether a plan fits your authorship strategy at all | [authorship-strategy-skill](https://github.com/shimo4228/authorship-strategy-skill) |
 | llms.txt / llms-full.txt prose | [llms-txt-writer](https://github.com/shimo4228/llms-txt-writer) |
-| JSON-LD knowledge graph design | [jsonld-knowledge-graph](https://github.com/shimo4228/jsonld-knowledge-graph) |
-| Cross-document drift detection (Phase 3 delegates to this) | [context-sync](https://github.com/shimo4228/context-sync) |
-| File-level architecture map regeneration (Phase 2 delegates to this) | A `update-codemaps` skill or comparable, where available |
+| Cross-document drift detection (Phase 2 delegates to this) | [context-sync](https://github.com/shimo4228/context-sync) |
 
-## Related research and skills
+## More from the author
 
-- **Doctrine repository**: [authorship-strategy](https://github.com/shimo4228/authorship-strategy) — the normative framework, five tactical ADRs (especially the identifier-federation triplet 0001-0003), and empirical baseline this skill is the operational instantiation of
-- **Peer components** (other component skills of the same framework):
-  - [authorship-strategy-skill](https://github.com/shimo4228/authorship-strategy-skill) — the framework's judgment-checklist form; this release-time skill assumes the framework has already determined the artifact is in-scope
-  - [llms-txt-writer](https://github.com/shimo4228/llms-txt-writer) — operationalizes Layer 4 tactic 7's Answer.AI `llms.txt` convention; this release skill's Phase 3 invokes it when llms.txt regeneration is needed
-  - [jsonld-knowledge-graph](https://github.com/shimo4228/jsonld-knowledge-graph) — operationalizes Layer 4 tactic 7's JSON-LD knowledge graph; this release skill's Phase 4 uses its verification commands
-- **Sibling research lines** (at the research-program level): [Agent Knowledge Cycle (AKC)](https://github.com/shimo4228/agent-knowledge-cycle), [Contemplative Agent](https://github.com/shimo4228/contemplative-agent), [Agent Attribution Practice (AAP)](https://github.com/shimo4228/agent-attribution-practice)
-
-> **Terminology note.** This ecosystem reserves *sibling* for research-line-level peers; at the component-skill level the term *peer component* is used instead.
+- **[Authorship Strategy](https://github.com/shimo4228/authorship-strategy)**: the doctrine behind these skills, with the thesis, the dated design decisions (ADRs) and the preliminary measurements; concept DOI 10.5281/zenodo.20263316.
+- **[citation-sync](https://github.com/shimo4228/citation-sync)**: audits whether the external papers a research repo cites appear in all three citation layers (docs, `.zenodo.json`, `graph.jsonld`) and syncs them bottom-up.
+- **[jsonld-knowledge-graph](https://github.com/shimo4228/jsonld-knowledge-graph)**: designs and ships the `graph.jsonld` knowledge graph a research repo carries next to `llms.txt`, the file this runbook mirrors to Hugging Face.
+- **[shimo4228](https://github.com/shimo4228/shimo4228)**: the author's hub, with Authorship Strategy next to the author's other long-running projects and their DOIs.
 
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+<details>
+<summary>For tools and AI assistants</summary>
+
+release-doi is a Claude Code skill (Agent Skills format, Markdown only) that runs the release of a DOI-registered research repository, a GitHub repository whose releases Zenodo archives and assigns version DOIs, for authors who maintain such repositories and want each release to leave every identifier and cross-reference consistent. It also covers editing the metadata of an already published Zenodo record without a new version.
+
+It exists because release-time drift is silent: a version DOI used where the concept DOI belongs still resolves, so nothing breaks while citations freeze at an old version. The workflow was extracted from releasing the author's own DOI-registered repositories (agent-knowledge-cycle, contemplative-agent, agent-attribution-practice and the hub), and its central safeguard comes from a sixteen-file drift incident found in May 2026, recorded as ADR-0001 of the authorship-strategy line.
+
+Canonical facts: MIT license; one file, `skills/release-doi/SKILL.md`, written in Japanese, invocable as `/release-doi`; no runtime dependencies of its own; the commands use `git`, an authenticated `gh`, `curl`, `python3` and `uv` (`uvx cffconvert`); a Zenodo account with the GitHub integration enabled per repository is required, and a free Zenodo API token only for community inclusion and published-record edits; no paid key beyond a Claude Code plan. Data leaves the machine through `git push`, `gh release create` (which makes Zenodo archive the repository and mint a DOI, an irreversible step), Software Heritage's Save Code Now API, the Wayback Machine save endpoint, (for repositories with `graph.jsonld`) an upload to the Hugging Face dataset mirror, and, with a Zenodo API token, Zenodo REST API writes that request and accept community inclusion of a new record and edit and re-publish an already published record; the skill runs push and release only on the user's explicit request, and its recovery path for a missed Zenodo opt-in deletes the GitHub release and its tag before recreating them. Status: active, synced one way from the author's Claude Code harness by `scripts/sync-from-local.sh` (it never commits); no tagged release yet; [CHANGELOG.md](CHANGELOG.md) collects changes under Unreleased.
+
+Example: in a repository with `CITATION.cff`, `/release-doi` first runs `gh api repos/<owner>/<repo>/hooks --jq '[.[] | select(.config.url | contains("zenodo"))] | length'`; 0 means the Zenodo opt-in is missing and the skill stops and asks the user to switch it on, while 1 or more lets it continue to the baseline. After `gh release create`, it waits for the new version DOI, writes it into `CITATION.cff` and the README citation, and leaves the concept-DOI badge and the GitHub homepage field as they are.
+
+Links: [SKILL.md](skills/release-doi/SKILL.md) is the runbook; [inspiration.md](inspiration.md) records the motivating incident; [llms.txt](llms.txt) and [llms-full.txt](llms-full.txt) are the machine-readable summary and reference. As of 2026-10-10, the Unreleased section of CHANGELOG.md and the "Lineage to existing skills" section of inspiration.md still describe an earlier five-phase layout with a CODEMAPS regeneration phase and an optional Wikidata step; the current runbook has no CODEMAPS or Wikidata step and rules out self-registration in community-governed records such as Wikidata (authorship-strategy ADR-0021). The design decisions it carries out are ADRs 0001-0003, the identifier-federation triplet (link to the concept DOI, declare related works in `.zenodo.json`, keep dataset mirrors on other platforms in step), and ADR-0013 (the Software Heritage step) of [authorship-strategy](https://github.com/shimo4228/authorship-strategy), concept DOI [10.5281/zenodo.20263316](https://doi.org/10.5281/zenodo.20263316); cite the framework by that DOI.
+
+</details>
