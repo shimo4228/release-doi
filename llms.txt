@@ -1,27 +1,29 @@
 # release-doi
 
-> A Claude Code skill (documentation-only, MIT, v0.1.0 Unreleased) that runs the release workflow for DOI-registered research repositories following the identifier-federation triplet from [`authorship-strategy`](https://github.com/shimo4228/authorship-strategy) (ADRs 0001-0003) and its intrinsic-identifier layer (ADR-0013: Software Heritage archival + SWHID recording). Pre-flight Zenodo opt-in check + five-phase runbook + one post-release phase, preventing the most common release-time drift incidents (off-by-one concept-vs-version DOI canonicalization, missed sibling cross-reference updates, accidental version-DOI propagation, opt-in lag on first release of a new DOI repository).
+> A Claude Code skill (documentation-only, MIT, no tagged release yet) that runs the release workflow for DOI-registered research repositories following the identifier-federation triplet from [`authorship-strategy`](https://github.com/shimo4228/authorship-strategy) (ADRs 0001-0003) and its intrinsic-identifier layer (ADR-0013: Software Heritage archival + SWHID recording). Pre-flight Zenodo opt-in check + four-phase runbook + one post-release phase, preventing the most common release-time drift incidents (off-by-one concept-vs-version DOI canonicalization, missed sibling cross-reference updates, version DOI used where the concept DOI belongs, opt-in lag on first release of a new DOI repository). It also covers editing the metadata of an already published Zenodo record without a new version.
+
+Status: active, synced one way from the author's Claude Code harness by `scripts/sync-from-local.sh` (it never commits); changes are collected under Unreleased in CHANGELOG.md.
 
 ## Core documentation
 
-- [SKILL.md](skills/release-doi/SKILL.md): full skill specification — Pre-flight Zenodo opt-in check, five-phase runbook (Baseline, CODEMAPS regeneration, Cross-document consistency, Verify, Release execution), post-release phase (DOI minting wait, concept-DOI verification, citation-metadata follow-up commit), recovery runbook for missed initial deposit
+- [SKILL.md](skills/release-doi/SKILL.md): full skill specification (written in Japanese) — Pre-flight Zenodo opt-in check, four-phase runbook (Baseline, Cross-document consistency, Verify, Release execution), post-release phase (DOI minting wait, version DOI written into citation fields, SWHID recording, follow-up commit), published-record metadata edit (retrofit without a new version), recovery runbook for missed initial deposit
 - [README.md](README.md): human-facing narrative (when to use, install, how it works, key concept, related skills)
-- [CHANGELOG.md](CHANGELOG.md): release notes
+- [CHANGELOG.md](CHANGELOG.md): release notes (Unreleased only; parts of it still describe an earlier five-phase layout)
+- [inspiration.md](inspiration.md): the motivating incident
 
 ## Workflow phases
 
 0. **Pre-flight: Zenodo opt-in check** — verify the Zenodo GitHub webhook is registered on the target repository via `gh api repos/<owner>/<repo>/hooks`; the integration is repo-by-repo opt-in and not retroactive, so this gate catches missing toggles on first release of a new DOI repository
-1. **Baseline** — capture pre-release ground truth (commit count, file count, test count)
-2. **CODEMAPS regeneration** — re-generate file-level architecture maps
-3. **Cross-document consistency** — sync CHANGELOG / CITATION.cff / .zenodo.json / multilingual README / llms.txt / glossary / ADR bidirectional links
-4. **Verify** — CITATION.cff syntax, version triple, lint and test pass, secret scan, unintended-file check
-5. **Release execution** — stage specific files, HEREDOC commit, tag, push, create the release object that triggers the archive webhook; submit an explicit Software Heritage Save Code Now request so the archive snapshot covers the released state (asynchronous, never blocks the release)
+1. **Baseline** — capture pre-release ground truth from command output (commits since the last tag, file and test counts where applicable, the version in `pyproject.toml` and `CITATION.cff`, latest tags)
+2. **Cross-document consistency** — opens with `/context-sync` for drift detection, then syncs CHANGELOG / CITATION.cff / `codemeta.json` / .zenodo.json / `pyproject.toml` / multilingual README / llms.txt / glossary / ADR bidirectional links
+3. **Verify** — CITATION.cff schema and syntax (`uvx cffconvert --validate`), version triple, lint and test pass, secret scan, unintended-file check
+4. **Release execution** — stage specific files, commit with the message passed through a file, tag, push, create the release object that triggers the archive webhook (only on the user's explicit request; irreversible); submit an explicit Software Heritage Save Code Now request and a Wayback Machine snapshot of the repository page (asynchronous, never block the release); sync the Hugging Face mirror via a separate `hf-sync` skill for repositories carrying `graph.jsonld`
 
-Post-release: wait for DOI minting, verify the concept DOI is being propagated (not the initial version DOI — the load-bearing single discipline of this skill), update CITATION.cff and .zenodo.json with the concept DOI, retrieve the Software Heritage snapshot SWHID and record it in CITATION.cff (`identifiers`, `type: swh` — appended per release, never replaced), follow-up commit. On the first release of a new repository or paper, also include the record in the author's Zenodo community (per parent record; later versions inherit it) and optionally create the Wikidata item. If opt-in lag caused the initial GitHub Release to skip Zenodo deposit, the recovery runbook deletes the tag and Release object and re-creates them after opt-in is enabled.
+Post-release: wait for DOI minting, write the new version DOI into the citation fields (`CITATION.cff`, README BibTeX and "How to cite"), leave the concept-DOI display links (README DOI badge, GitHub homepage field) untouched, retrieve the Software Heritage snapshot SWHID and record it in CITATION.cff (`identifiers`, `type: swh` — appended per release, never replaced), follow-up commit. On the first release of a new repository or paper, also include the record in the author's Zenodo community via the Zenodo API (per parent record; later versions inherit it). The skill does not self-register in community-governed records such as Wikidata (authorship-strategy ADR-0021). If opt-in lag caused the initial GitHub Release to skip Zenodo deposit, the recovery runbook deletes the tag and Release object and re-creates them after opt-in is enabled.
 
 ## Key concept
 
-The concept DOI (parent record, latest-version-resolving) and the initial version DOI are typically issued as adjacent integers at first deposit. A user copying the citation snippet from the just-published version's UI page usually copies the wrong one. The skill's post-release phase explicitly asks the operator to verify which DOI is being propagated. The skill exists in part to prevent the sixteen-file drift incident that produced [ADR-0001 of the upstream research line](https://github.com/shimo4228/authorship-strategy/blob/main/docs/adr/0001-concept-doi-canonical.md) from recurring.
+The concept DOI (parent record, latest-version-resolving) and the initial version DOI are typically issued as adjacent integers at first deposit. A user copying the citation snippet from the just-published version's UI page usually copies the wrong one. The skill separates the two by use: display links (README DOI badge, GitHub homepage field) carry the concept DOI and are set once; citation fields (`CITATION.cff`, BibTeX, "How to cite") carry the version DOI and change every release. The skill exists in part to prevent the sixteen-file drift incident that produced [ADR-0001 of the upstream research line](https://github.com/shimo4228/authorship-strategy/blob/main/docs/adr/0001-concept-doi-canonical.md) from recurring.
 
 ## Doctrine repository
 
@@ -31,23 +33,21 @@ The concept DOI (parent record, latest-version-resolving) and the initial versio
 
 Other component skills of the same framework:
 
-- [authorship-strategy-skill](https://github.com/shimo4228/authorship-strategy-skill): the framework's judgment-checklist form; determines whether an artifact is in scope before this release-time skill is invoked
-- [llms-txt-writer](https://github.com/shimo4228/llms-txt-writer): operationalizes Layer 4 tactic 7's Answer.AI `llms.txt` convention; Phase 3 invokes it when llms.txt regeneration is needed
-- [jsonld-knowledge-graph](https://github.com/shimo4228/jsonld-knowledge-graph): operationalizes Layer 4 tactic 7's JSON-LD knowledge graph; Phase 4 uses its verification commands
+- [authorship-strategy-skill](https://github.com/shimo4228/authorship-strategy-skill): the framework as a skill a coding agent loads to weigh whether a plan fits the authorship strategy at all
+- [llms-txt-writer](https://github.com/shimo4228/llms-txt-writer): operationalizes Layer 4 tactic 7's Answer.AI `llms.txt` convention; writes the llms.txt / llms-full.txt prose this skill does not write
+- [jsonld-knowledge-graph](https://github.com/shimo4228/jsonld-knowledge-graph): operationalizes Layer 4 tactic 7's JSON-LD knowledge graph; designs the `graph.jsonld` that this runbook mirrors to Hugging Face
 
 Terminology: *sibling* is reserved for research-line-level peers; at the component-skill level the term *peer component* is used.
 
 ## Related ecosystem skills
 
-- [context-sync](https://github.com/shimo4228/context-sync): Phase 3 delegates drift detection to this skill
-- [llms-txt-writer](https://github.com/shimo4228/llms-txt-writer): used during Phase 3 for llms.txt regeneration
-- [jsonld-knowledge-graph](https://github.com/shimo4228/jsonld-knowledge-graph): used during Phase 4 for graph validation
+- [context-sync](https://github.com/shimo4228/context-sync): Phase 2 delegates drift detection to this skill
 
 ## Sibling research lines
 
-The skill operates on artifacts in the author's research program:
+The skill operates on artifacts in the author's research program; the author's hub [shimo4228](https://github.com/shimo4228/shimo4228) lists the five practice lines and their concept DOIs:
 
-- [authorship-strategy](https://github.com/shimo4228/authorship-strategy)
+- [authorship-strategy](https://github.com/shimo4228/authorship-strategy) — DOI 10.5281/zenodo.20263316
 - [agent-knowledge-cycle (AKC)](https://github.com/shimo4228/agent-knowledge-cycle) — DOI 10.5281/zenodo.19200726
 - [contemplative-agent](https://github.com/shimo4228/contemplative-agent) — DOI 10.5281/zenodo.19212118
 - [agent-attribution-practice (AAP)](https://github.com/shimo4228/agent-attribution-practice) — DOI 10.5281/zenodo.19652013
