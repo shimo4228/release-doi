@@ -46,7 +46,7 @@ The runbook was written for the author's own repositories and harness. Substitut
 - Zenodo community inclusion (first release only) names the author's community (`shimo4228-research-program`) and reads the token from a local credentials file (the runbook's example is `~/.config/zenodo/credentials.env`).
 - The Hugging Face mirror step, only for repos with `graph.jsonld`, calls a separate `hf-sync` skill (not included here) with a logged-in `hf` CLI.
 - The cross-document phase (Phase 2) opens with the [`/context-sync`](https://github.com/shimo4228/context-sync) skill for drift detection.
-- The commit step passes the message through a file to work around the author's PreToolUse hook (`hooks/validate-bash.sh`), and a few lines point to the author's rules and skills (`rules/common/debugging.md`, `measurement-discipline`, `repair-discipline`).
+- The commit step passes the message through a file to work around the author's PreToolUse hook (`hooks/validate-bash.sh`), and one line points to the author's skill `repair-discipline`.
 
 ### Other harnesses
 
