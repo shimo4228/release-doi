@@ -15,7 +15,7 @@ Status: active, synced one way from the author's Claude Code harness by `scripts
 
 0. **Pre-flight: Zenodo opt-in check** — verify the Zenodo GitHub webhook is registered on the target repository via `gh api repos/<owner>/<repo>/hooks`; the integration is repo-by-repo opt-in and not retroactive, so this gate catches missing toggles on first release of a new DOI repository
 1. **Baseline** — capture pre-release ground truth from command output (commits since the last tag, file and test counts where applicable, the version in `pyproject.toml` and `CITATION.cff`, latest tags)
-2. **Cross-document consistency** — opens with `/context-sync` for drift detection, then syncs CHANGELOG / CITATION.cff / `codemeta.json` / .zenodo.json / `pyproject.toml` / multilingual README / llms.txt / glossary / ADR bidirectional links
+2. **Cross-document consistency** — opens with `/context-sync` for drift detection, then syncs CHANGELOG / CITATION.cff / `codemeta.json` / .zenodo.json / `pyproject.toml` / multilingual README / llms.txt / glossary / links between the records in `docs/decision-history/`
 3. **Verify** — CITATION.cff schema and syntax (`uvx cffconvert --validate`), version triple, lint and test pass, secret scan, unintended-file check
 4. **Release execution** — stage specific files, commit with the message passed through a file, tag, push, create the release object that triggers the archive webhook (only on the user's explicit request; irreversible); submit an explicit Software Heritage Save Code Now request and a Wayback Machine snapshot of the repository page (asynchronous, never block the release); sync the Hugging Face mirror via a separate `hf-sync` skill for repositories carrying `graph.jsonld`
 
@@ -23,7 +23,7 @@ Post-release: wait for DOI minting, write the new version DOI into the citation 
 
 ## Key concept
 
-The concept DOI (parent record, latest-version-resolving) and the initial version DOI are typically issued as adjacent integers at first deposit. A user copying the citation snippet from the just-published version's UI page usually copies the wrong one. The skill separates the two by use: display links (README DOI badge, GitHub homepage field) carry the concept DOI and are set once; citation fields (`CITATION.cff`, BibTeX, "How to cite") carry the version DOI and change every release. The skill exists in part to prevent the sixteen-file drift incident that produced [ADR-0001 of the upstream research line](https://github.com/shimo4228/authorship-strategy/blob/main/docs/adr/0001-concept-doi-canonical.md) from recurring.
+The concept DOI (parent record, latest-version-resolving) and the initial version DOI are typically issued as adjacent integers at first deposit. A user copying the citation snippet from the just-published version's UI page usually copies the wrong one. The skill separates the two by use: display links (README DOI badge, GitHub homepage field) carry the concept DOI and are set once; citation fields (`CITATION.cff`, BibTeX, "How to cite") carry the version DOI and change every release. The skill exists in part to prevent the sixteen-file drift incident that produced [ADR-0001 of the upstream research line](https://github.com/shimo4228/authorship-strategy/blob/main/docs/decision-history/0001-concept-doi-canonical.md) from recurring.
 
 ## Doctrine repository
 

@@ -16,7 +16,7 @@ Apply the skill to a release when **all** of the following hold:
 
 - The repository is registered (or about to be registered) with a versioned DOI archive (Zenodo is the reference example; the skill checks for a `CITATION.cff`)
 - The release follows a tagged-release-triggers-deposit model (typical for Zenodo's GitHub integration)
-- The release author intends to maintain the **concept DOI as canonical reference** discipline above ([ADR-0001](https://github.com/shimo4228/authorship-strategy/blob/main/docs/adr/0001-concept-doi-canonical.md), the design decision record in authorship-strategy that came out of that incident)
+- The release author intends to maintain the **concept DOI as canonical reference** discipline above ([ADR-0001](https://github.com/shimo4228/authorship-strategy/blob/main/docs/decision-history/0001-concept-doi-canonical.md), the design decision record in authorship-strategy that came out of that incident)
 
 The skill adds most when the repository is one of several DOI-registered siblings that declare each other in the `related_identifiers` list of `.zenodo.json` or keep dataset mirrors on other platforms.
 
@@ -58,7 +58,7 @@ The skill walks through a pre-flight gate, four sequential phases, and one post-
 
 - **Pre-flight: Zenodo opt-in check**: verifies the Zenodo GitHub webhook is registered on the target repository (`gh api repos/<owner>/<repo>/hooks`). Zenodo's GitHub integration is **repo-by-repo opt-in**; releases cut before the toggle is enabled are not retroactively archived. This gate catches the gap on first release of a new DOI repository, a blind spot when sibling repos are already opted in.
 - **Phase 1: Baseline**: capture the pre-release ground truth from command output (commits since the last tag, file and test counts where applicable, the version in `pyproject.toml`, `CITATION.cff` and the latest tags). Numbers already written in the docs are not trusted.
-- **Phase 2: Cross-document consistency**: sync CHANGELOG / CITATION.cff / `codemeta.json` / `.zenodo.json` (including external papers newly cited since the last release) / `pyproject.toml` (where applicable) / multilingual README / llms.txt / glossary / ADR bidirectional links. Drift detection is delegated to context-sync.
+- **Phase 2: Cross-document consistency**: sync CHANGELOG / CITATION.cff / `codemeta.json` / `.zenodo.json` (including external papers newly cited since the last release) / `pyproject.toml` (where applicable) / multilingual README / llms.txt / glossary / links between the records in `docs/decision-history/`. Drift detection is delegated to context-sync.
 - **Phase 3: Verify**: CITATION.cff schema and syntax, version consistency across `pyproject.toml`, `CITATION.cff` and the README BibTeX, lint and test pass, secret scan, unintended-file inclusion check.
 - **Phase 4: Release execution**: stage specific files only (no wildcards), commit, tag, push main and tag, and create the GitHub release object that triggers the Zenodo webhook. Then request a Software Heritage archive and a Wayback Machine snapshot of the repository page, and sync the Hugging Face mirror for repositories that carry `graph.jsonld`.
 - **Post-release**: wait for Zenodo to mint the new version DOI (usually within minutes), write it into the citation fields (`CITATION.cff`, the README BibTeX and "How to cite"), record the Software Heritage snapshot ID (SWHID) in `CITATION.cff`, and leave the concept-DOI badge and homepage untouched.

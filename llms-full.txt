@@ -39,7 +39,7 @@ After the Pre-flight gate passes, the skill walks the release through four seque
 
 Phase 1 (Baseline) captures the pre-release ground truth from command output: commits since the last tag, file and test counts where applicable, the version in `pyproject.toml` and `CITATION.cff`, and the latest tags. Numbers already written in the docs are not trusted.
 
-Phase 2 (Cross-document consistency) opens with [`context-sync`](https://github.com/shimo4228/context-sync) for drift detection, then syncs CHANGELOG.md, CITATION.cff, `codemeta.json` (regenerated from CITATION.cff where it exists), `.zenodo.json` (including external papers newly cited since the last release), `pyproject.toml` (where applicable), multilingual README files, llms.txt, glossary, and ADR bidirectional links.
+Phase 2 (Cross-document consistency) opens with [`context-sync`](https://github.com/shimo4228/context-sync) for drift detection, then syncs CHANGELOG.md, CITATION.cff, `codemeta.json` (regenerated from CITATION.cff where it exists), `.zenodo.json` (including external papers newly cited since the last release), `pyproject.toml` (where applicable), multilingual README files, llms.txt, glossary, and the links between the records in `docs/decision-history/`.
 
 Phase 3 (Verify) runs CITATION.cff schema and syntax validation (`uvx cffconvert --validate`), a version consistency check across `pyproject.toml`, `CITATION.cff` and the README BibTeX, lint and test pass for repositories with code, secret scan (no hardcoded credentials), and a `git status` check confirming no unintended files are included.
 
